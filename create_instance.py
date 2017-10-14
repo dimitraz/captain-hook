@@ -1,3 +1,7 @@
+#!/usr/bin/python3
+# To do: AWS profiles
+# To do: Implement usability 
+
 import boto3
 
 boto3.setup_default_session(profile_name='boto3')
