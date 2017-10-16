@@ -1,0 +1,15 @@
+#!/usr/bin/python3
+
+import subprocess 
+
+# ssh into instance and perform command
+def ssh(key, dns, cmd):
+    ssh = 'ssh -i ' + key + ' ec2-user@' + dns + 'rm -rf check_webserver.py' + cmd
+    subprocess.run(cmd, shell=True)
+
+# copy a file to a given destination
+# To do: array of files?  
+def scp(key, dns, file, dest):
+    cmd = 'scp -i ' + key + ' ' + file + ' ec2-user@' + dns + ':' + dest
+    subprocess.run(cmd, shell=True)
+
