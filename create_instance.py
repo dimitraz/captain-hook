@@ -5,7 +5,6 @@
 import boto3
 
 boto3.setup_default_session(profile_name='boto3')
-client = boto3.client('ec2')
 ec2 = boto3.resource('ec2')
 
 # Read file to load in as user data
@@ -25,12 +24,15 @@ def security_group():
     group_desc = 'Allow incoming http and ssh traffic'
 
     # If security group exists, get group id
-    groups = [sg.group_name for sg in ec2.security_groups.all()]
+    groups = [(sg.group_name, sg.group_id) for sg in ec2.security_groups.all()]
 
-    if group_name in groups:
-        response = client.describe_security_groups(GroupNames = [group_name])
-        group_id = response['SecurityGroups'][0]['GroupId']
-        return group_id
+    # Return security groups with name matching group_name
+    # sg is a tuple of (group_name, group_id)
+    sg = [(sg[0], sg[1]) for sg in groups if sg[0] == group_name]
+    if sg:
+        security_group_id = sg[0][0] # First item in array, first item in tuple
+        return security_group_id
+
     # Otherwise, create security group
     else: 
         try:
@@ -86,7 +88,7 @@ def create_instance():
                 'Tags': [
                     {
                         'Key': 'Name',
-                        'Value': 'captain-hooks'
+                        'Value': 'captain-hookz'
                     }
                 ]
             }
@@ -99,4 +101,4 @@ def main():
     create_instance()
 
 if __name__ == '__main__':
-  main()
+    main()
