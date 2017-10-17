@@ -1,3 +1,5 @@
 yum -y update && yum -y upgrade
-yum install -y python36
-yum install -y nginx
+
+yum install docker -y
+service docker start
+usermod -a -G docker ec2-user
