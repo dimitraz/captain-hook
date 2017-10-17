@@ -1,13 +1,16 @@
 #!/usr/bin/python3
 # To do: AWS profiles
-# To do: Implement usability 
+# To do: Implement usability
 
 import boto3
 
 boto3.setup_default_session(profile_name='boto3')
+client = boto3.client('ec2')
 ec2 = boto3.resource('ec2')
 
 # Read file to load in as user data
+
+
 def user_data():
     try:
         f = open('user-data.sh', 'rU')
@@ -28,23 +31,24 @@ def security_group():
 
     # Return security groups with name matching group_name
     # sg is a tuple of (group_name, group_id)
-    sg = [(sg[0], sg[1]) for sg in groups if sg[0] == group_name]
-    if sg:
-        security_group_id = sg[0][0] # First item in array, first item in tuple
-        return security_group_id
+    group = [(sg[0], sg[1]) for sg in groups if sg[0] == group_name]
+    if group:
+        # First item in array, first item in tuple
+        group_id = group[0][0]
+        return group_id
 
     # Otherwise, create security group
     else: 
         try:
-            response = ec2.create_security_group(
+            group = ec2.create_security_group(
                 GroupName=group_name,
                 Description=group_desc
             )
-            security_group_id = response['GroupId']
-            print ('Security Group %s created with id %s' % (security_group_id))
+            
+            group_id = group.id
+            print ('Security Group created with id %s' % (group_id))
 
-            data = ec2.authorize_security_group_ingress(
-                GroupId=security_group_id,
+            response = group.authorize_ingress(
                 IpPermissions=[
                     {
                         'IpProtocol': 'tcp',
@@ -60,8 +64,8 @@ def security_group():
                     }
                 ]
             )
-            print ('Ingress Successfully Set %s' % data)
-            return security_group_id
+            print ('Ingress rules successfully added')
+            return group_id
         except Exception as e:
             error = str(e)
             print ('Error occurred while creating security group:', error)
@@ -88,7 +92,7 @@ def create_instance():
                 'Tags': [
                     {
                         'Key': 'Name',
-                        'Value': 'captain-hookz'
+                        'Value': 'captain-hook'
                     }
                 ]
             }
