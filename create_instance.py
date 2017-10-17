@@ -9,8 +9,6 @@ client = boto3.client('ec2')
 ec2 = boto3.resource('ec2')
 
 # Read file to load in as user data
-
-
 def user_data():
     try:
         f = open('user-data.sh', 'rU')

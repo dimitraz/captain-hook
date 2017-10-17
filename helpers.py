@@ -7,9 +7,8 @@ def ssh(key, dns, cmd):
     ssh = 'ssh -i ' + key + ' ec2-user@' + dns + 'rm -rf check_webserver.py' + cmd
     subprocess.run(cmd, shell=True)
 
-# copy a file to a given destination
-# To do: array of files?  
+# copy files and folders to a given destination
 def scp(key, dns, file, dest):
-    cmd = 'scp -i ' + key + ' ' + file + ' ec2-user@' + dns + ':' + dest
+    cmd = 'scp -r -i ' + key + ' ' + file + ' ec2-user@' + dns + ':' + dest
     subprocess.run(cmd, shell=True)
 
