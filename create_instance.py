@@ -1,8 +1,11 @@
 #!/usr/bin/python3
 # To do: AWS profiles
 # To do: Implement usability
+# To do: custom tag names
 
 import boto3
+import sys
+import time
 
 boto3.setup_default_session(profile_name='boto3')
 client = boto3.client('ec2')
@@ -16,8 +19,8 @@ def user_data():
         f.close()
         return data
     except IOError as e:
-        error = str(e)
-        print ('Cannot read user data:', error)
+        print ('Cannot read user data:', str(e))
+        sys.exit(1)
 
 # Configure security group
 def security_group():
@@ -33,6 +36,8 @@ def security_group():
     if group:
         # First item in array, first item in tuple
         group_id = group[0][0]
+        print ('Using existing security group with id %s' % (group_id))
+
         return group_id
 
     # Otherwise, create security group
@@ -62,45 +67,65 @@ def security_group():
                     }
                 ]
             )
+
             print ('Ingress rules successfully added')
             return group_id
         except Exception as e:
-            error = str(e)
-            print ('Error occurred while creating security group:', error)
+            print ('Error occurred while creating security group:', str(e))
+            sys.exit(1)
 
 # Create the instance
-def create_instance():
+def create_instance(key, instance_name):
     security_group_id = security_group()
     data = user_data()
 
-    instance = ec2.create_instances(
-        ImageId='ami-acd005d5',
-        KeyName='nginx_instance_keypair', # Create key pair? Import key pair?
-        MinCount=1,
-        MaxCount=1,
-        InstanceType='t2.micro',
-        UserData=data,
-        SecurityGroupIds=[security_group_id],
-        Placement={
-            'AvailabilityZone': 'eu-west-1a'
-        },
-        TagSpecifications=[
-            {
-                'ResourceType': 'instance',
-                'Tags': [
-                    {
-                        'Key': 'Name',
-                        'Value': 'captain-hook'
-                    }
-                ]
-            }
-        ]
-    )
+    # Use default instance name
+    if not instance_name:
+        instance_name = 'captain-hookzz'
 
-    print ('Instance created with id:', instance[0].id)
+    try: 
+        instance = ec2.create_instances(
+            ImageId='ami-acd005d5',
+            KeyName=key, # Create key pair? Import key pair?
+            MinCount=1,
+            MaxCount=1,
+            InstanceType='t2.micro',
+            UserData=data,
+            SecurityGroupIds=[security_group_id],
+            Placement={
+                'AvailabilityZone': 'eu-west-1a'
+            },
+            TagSpecifications=[
+                {
+                    'ResourceType': 'instance',
+                    'Tags': [
+                        {
+                            'Key': 'Name',
+                            'Value': instance_name
+                        }
+                    ]
+                }
+            ]
+        )
+        
+        # Wait for instance to start up before returning
+        instance = instance[0]
+        #waiter = client.get_waiter('instance_status_ok')
+        #waiter.wait(InstanceIds=[instance.id])
+        
+        while instance.state['Name'] != 'running':
+            print ('Instance is starting up...')
+            time.sleep(10)
+            instance.reload()
+
+        print ('Instance created with id:', instance.id)
+        return instance
+    except Exception as e:
+        print ('\033[91m [WARN]', 'Error while creating instance:', str(e))
+        sys.exit(1)
 
 def main():
-    create_instance()
+    create_instance(sys.argv[1], sys.argv[2])
 
 if __name__ == '__main__':
     main()
