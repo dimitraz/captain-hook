@@ -16,6 +16,7 @@ def build_image(key, dns, tag):
 
     try:
         ssh(key, dns, cmd)
+        ssh(key, dns, 'docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q)')
     except Exception as e:
         print ('Error occurred while building image:', str(e))
 
