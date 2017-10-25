@@ -11,7 +11,6 @@ import time
 from create_instance import create_instance
 from create_bucket import create_bucket
 from start_docker import build_image, start_container
-import check_docker
 from helpers import scp, ssh
 
 boto3.setup_default_session(profile_name='boto3')
@@ -27,6 +26,13 @@ def copy_files(key, dns):
         scp(key, dns, ' '.join(files), '.')
     except Exception as e:
         print ('Error occurred while copying files:', str(e))
+        sys.exit(1)
+
+def check_docker(key, dns):
+    try:
+        ssh(key, dns, 'cd /home/ec2-user && python3 check_docker.py')
+    except Exception as e:
+        print ('Error while starting check_docker script:', str(e))
         sys.exit(1)
 
 def main(): 
@@ -75,7 +81,7 @@ def main():
     start_container(key, dns, '')
 
     # Make sure docker is running
-    check_docker.main()
+    check_docker(key, dns)
 
 if __name__ == '__main__':
     main()

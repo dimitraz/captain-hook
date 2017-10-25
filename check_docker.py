@@ -2,17 +2,15 @@
 # To do: Implement try catch blocks
 # To do: Implement usability 
 # To do: Check if image exists / just start container
+# To do: custom docker tag? 
 
 import subprocess
 from helpers import ssh, scp
-from start_docker import build_image, start_container
 
 def check_docker():
     cmd = 'cd /home/ec2-user/ && ps -A | grep docker | grep -v grep'
-
     try:
         status = subprocess.run(cmd, shell=True).returncode 
-
         if status != 0: 
             print ('Docker daemon not running, starting now..')
             cmd = 'sudo service docker start'
@@ -26,14 +24,12 @@ def check_docker():
 def check_container():
     tag = 'captain-hook'
     cmd = 'sudo docker ps -a | grep ' + tag
-
     try:
         status = subprocess.run(cmd, shell=True).returncode 
-
         if status != 0: 
             print ('Container not running, starting now..')
-            build_image()
-            start_container()
+            #build_image()
+            #start_container()
         else:
             print ('Container is running') 
     except Exception as e:
