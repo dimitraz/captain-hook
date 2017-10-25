@@ -1,26 +1,43 @@
 #!/usr/bin/python3
-# To do: Implement try catch blocks
 # To do: Implement usability 
 
+import sys
 from helpers import ssh, scp
 
-def start_service():
+#def start_service():
     # Start docker if not started
 
-def build_image():
-    tag = 'captain-hook'
-    cmd = 'cd /home/ec2-user/flask-app && sudo docker build -t ' + tag + ' .'
-    ssh('key.pem', '34.241.48.147', cmd)
+def build_image(key, dns, tag):
+    if not tag:
+        tag = 'captain-hook'
 
-def start_container():
-    tag = 'captain-hook'
+    print('Building Docker image with tag:', tag)
+    cmd = 'cd /home/ec2-user/flask-app && sudo docker build -t ' + tag + ' .'
+
+    try:
+        ssh(key, dns, cmd)
+    except Exception as e:
+        print ('Error occurred while building image:', str(e))
+
+def start_container(key, dns, tag):
+    if not tag:
+        tag = 'captain-hook'
+
+    print('Starting container from image', tag)
     port = '80'
     cmd = 'sudo docker run -d -p ' + port + ':80 ' + tag
-    ssh('key.pem', '34.241.48.147', cmd)
+    try:
+        ssh(key, dns, cmd)
+    except Exception as e:
+        print ('Error occurred while building image:', str(e))
 
 def main():
-    build_image()
-    start_container()
+    key = sys.argv[1]
+    dns = sys.argv[2]
+    tag = sys.argv[3]
+
+    build_image(key, dns, tag)
+    start_container(key, dns, tag)
 
 if __name__ == '__main__':
     main()
