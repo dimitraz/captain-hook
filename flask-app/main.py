@@ -1,17 +1,27 @@
+# To do: check for file extensions
+
 from flask import Flask, Response, request, jsonify
 from hashlib import sha256
-from redis import Redis
+from redis import StrictRedis
 import os
+import time
 import hmac
+import boto3
 import config
 import logging
 import dropbox
+import threading
 
 app = Flask(__name__)
 
-# Initialise Redis and dropbox clients
-redis = Redis('redis-py', 6379)
+# Initialise Redis, dropbox, s3 clients
+redis = StrictRedis('redis-py', 6379, charset='utf-8', decode_responses=True)
 dbx = dropbox.Dropbox(config.DBX_ACCESS_TOKEN)
+s3 = boto3.resource(
+    's3', 
+    aws_access_key_id=config.AWS_ACCESS_KEY,
+    aws_secret_access_key=config.AWS_SECRET_KEY
+)
 
 @app.before_first_request
 def setup_logging():
@@ -31,12 +41,55 @@ def webhook():
     if not hmac.compare_digest(signature, hmac.new(config.DBX_SECRET, request.data, sha256).hexdigest()):
         abort(403)
 
-    # Store entry name and path in redis keystore
     app.logger.info('Responding to webhook...')
-    for entry in dbx.files_list_folder('').entries:
-        redis.set(entry.name, entry.path_display)
-    app.logger.info('Webhook finished, processing started in new thread')
 
+       # Cursor to only get latest changes
+    cursor = redis.get('cursor')
+    has_more = True
+
+    # Store entry name and path in redis keystore
+    while has_more:
+        if cursor is None:
+            result = dbx.files_list_folder('')
+        else:
+            result = dbx.files_list_folder_continue(cursor)
+
+        for entry in result.entries:
+            # Ignore deleted files, folders, and non-image based files
+            if (isinstance(entry, dropbox.files.DeletedMetadata) or isinstance(entry, dropbox.files.FolderMetadata) or
+            not entry.path_lower.endswith(('.jpeg', '.jpg', '.png', '.gif'))): 
+                continue
+            
+            app.logger.info('Saving entry: %s to redis', entry.name)
+            redis.set(entry.name, entry.path_lower)
+                
+        # Update cursor
+        cursor = result.cursor
+        redis.set('cursor', cursor)
+
+        # Repeat only if there's more to do
+        has_more = result.has_more
+
+    threading.Thread(target=process_files).start()
+    res = Response(status=200, mimetype='application/json')
+    return res
+
+# Get newest files and upload to s3
+def process_files():
+    app.logger.info('Beginning to process files')
+    time.sleep(5)
+
+    # Download file and upload to s3 bucket
+    for key in redis.scan_iter(): 
+        if key != 'cursor':
+            app.logger.info('Attempting to upload file: %s to s3 bucket', key)
+            md, res = dbx.files_download(redis.get(key))
+            data = res.content
+            response = s3.Object('2017-10-25-17.56.54-hook', key).put(ACL='public-read', Body=data)
+            app.logger.info(response)
+            # redis.delete(key)
+    
+    app.logger.info('Finished uploading files')
     res = Response(status=200, mimetype='application/json')
     return res
 
