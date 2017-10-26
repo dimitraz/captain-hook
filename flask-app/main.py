@@ -1,16 +1,31 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
+from hashlib import sha256
+import os
+import hmac
+import config
+import logging
 
 app = Flask(__name__)
 
+@app.before_first_request
+def setup_logging():
+    app.logger.addHandler(logging.StreamHandler())
+    app.logger.setLevel(logging.DEBUG)
+
+# Webhook verification request
 @app.route('/webhook', methods=['GET'])
 def verify():
-    # Respond to the webhook verification (GET request)
-    # by echoing back the challenge parameter
     return request.args.get('challenge')
 
-@app.route("/hello")
-def hello_world():
-    return "Hello World from Flask"
+# Respond to webhooks
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    # Make sure this is a valid request from Dropbox
+    signature = request.headers.get('X-Dropbox-Signature')
+    if not hmac.compare_digest(signature, hmac.new(config.DBX_SECRET, request.data, sha256).hexdigest()):
+        abort(403)
+
+    return 'ok'
 
 @app.route("/")
 def main():
