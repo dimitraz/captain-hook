@@ -17,6 +17,8 @@ def build_image(key, dns, tag):
     try:
         ssh(key, dns, cmd)
         ssh(key, dns, 'docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q)')
+        ssh(key, dns, 'docker network create py-net')
+        ssh(key, dns, 'docker run --name redis-py --net py-net -d redis')
     except Exception as e:
         print ('Error occurred while building image:', str(e))
 
@@ -26,7 +28,7 @@ def start_container(key, dns, tag):
 
     print('Starting container from image', tag)
     port = '80'
-    cmd = 'sudo docker run -d -p ' + port + ':80 ' + tag
+    cmd = 'sudo docker run --net py-net -d -p ' + port + ':80 ' + tag
     try:
         ssh(key, dns, cmd)
     except Exception as e:

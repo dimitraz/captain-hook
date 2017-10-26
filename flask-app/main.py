@@ -1,11 +1,17 @@
-from flask import Flask, request, jsonify
+from flask import Flask, Response, request, jsonify
 from hashlib import sha256
+from redis import Redis
 import os
 import hmac
 import config
 import logging
+import dropbox
 
 app = Flask(__name__)
+
+# Initialise Redis and dropbox clients
+redis = Redis('redis-py', 6379)
+dbx = dropbox.Dropbox(config.DBX_ACCESS_TOKEN)
 
 @app.before_first_request
 def setup_logging():
@@ -25,7 +31,14 @@ def webhook():
     if not hmac.compare_digest(signature, hmac.new(config.DBX_SECRET, request.data, sha256).hexdigest()):
         abort(403)
 
-    return 'ok'
+    # Store entry name and path in redis keystore
+    app.logger.info('Responding to webhook...')
+    for entry in dbx.files_list_folder('').entries:
+        redis.set(entry.name, entry.path_display)
+    app.logger.info('Webhook finished, processing started in new thread')
+
+    res = Response(status=200, mimetype='application/json')
+    return res
 
 @app.route("/")
 def main():
