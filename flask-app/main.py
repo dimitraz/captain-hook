@@ -1,5 +1,3 @@
-# To do: check for file extensions
-
 from flask import Flask, Response, request, jsonify, render_template
 from hashlib import sha256
 from redis import StrictRedis
@@ -79,29 +77,15 @@ def webhook():
 def process_files():
     app.logger.info('Beginning to process files')
 
-    # Dealing with concurrency
-    #while redis.get('wait') == 'true':
-    #    app.logger.info('Waiting for 2 seconds')
-    #    time.sleep(2)
-
-    # Lock redis
-    if redis.get('wait') == 'false':
-        #app.logger.info('Setting wait to true')
-        #redis.set('wait', 'true')
-
-        # Download file and upload to s3 bucket
-        for key in redis.scan_iter(): 
-            if key not in ['cursor', 'wait']:
-                app.logger.info('Attempting to upload file: %s to s3 bucket', key)
-                md, res = dbx.files_download(redis.get(key))
-                data = res.content
-                response = s3.Object(config.S3_BUCKET_NAME, key).put(ACL='public-read', Body=data)
-                app.logger.info(response)
-                redis.delete(key)
-        
-        # Free the lock
-        #app.logger.info('Setting wait to false')
-        #redis.set('wait', 'false')
+    # Download file and upload to s3 bucket
+    for key in redis.scan_iter(): 
+        if key not in ['cursor', 'wait'] and redis.get(key) != 'processed':
+            app.logger.info('Attempting to upload file: %s to s3 bucket', key)
+            md, res = dbx.files_download(redis.get(key))
+            data = res.content
+            response = s3.Object(config.S3_BUCKET_NAME, key).put(ACL='public-read', Body=data)
+            app.logger.info(response)
+            redis.set(key, 'processed')
     
     app.logger.info('Finished uploading files')
     res = Response(status=200, mimetype='application/json')
@@ -111,7 +95,7 @@ def process_files():
 def main():
     urls = []
     bucket = s3.Bucket(config.S3_BUCKET_NAME)
-    region = 'eu-west-1'
+    region = config.AWS_REGION_NAME
 
     for item in bucket.objects.all():
         url = 'https://s3-' + region + '.amazonaws.com/' + config.S3_BUCKET_NAME + '/' + item.key

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# To do: main function?
 
 import sys
 import boto3

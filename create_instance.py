@@ -1,7 +1,4 @@
-#!/usr/bin/python3
-# To do: AWS profiles
-# To do: Implement usability
-# To do: custom tag names
+#!/usr/bin/env python3
 
 import boto3
 import sys
@@ -91,7 +88,7 @@ def create_instance(key, instance_name):
     try: 
         instance = ec2.create_instances(
             ImageId='ami-acd005d5',
-            KeyName=key, # Create key pair? Import key pair?
+            KeyName=key,
             MinCount=1,
             MaxCount=1,
             InstanceType='t2.micro',
@@ -123,7 +120,7 @@ def create_instance(key, instance_name):
         print ('Instance created with id:', instance.id)
         return instance
     except Exception as e:
-        print ('\033[91m [WARN]', 'Error while creating instance:', str(e))
+        print ('Error while creating instance:', str(e))
         sys.exit(1)
 
 def main():
