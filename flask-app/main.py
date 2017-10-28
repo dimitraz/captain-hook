@@ -1,6 +1,6 @@
 # To do: check for file extensions
 
-from flask import Flask, Response, request, jsonify
+from flask import Flask, Response, request, jsonify, render_template
 from hashlib import sha256
 from redis import StrictRedis
 import os
@@ -27,6 +27,7 @@ s3 = boto3.resource(
 def setup_logging():
     app.logger.addHandler(logging.StreamHandler())
     app.logger.setLevel(logging.DEBUG)
+    redis.set('wait', 'false')
 
 # Webhook verification request
 @app.route('/webhook', methods=['GET'])
@@ -43,7 +44,7 @@ def webhook():
 
     app.logger.info('Responding to webhook...')
 
-       # Cursor to only get latest changes
+    # Cursor to only get latest changes
     cursor = redis.get('cursor')
     has_more = True
 
@@ -77,17 +78,30 @@ def webhook():
 # Get newest files and upload to s3
 def process_files():
     app.logger.info('Beginning to process files')
-    time.sleep(5)
 
-    # Download file and upload to s3 bucket
-    for key in redis.scan_iter(): 
-        if key != 'cursor':
-            app.logger.info('Attempting to upload file: %s to s3 bucket', key)
-            md, res = dbx.files_download(redis.get(key))
-            data = res.content
-            response = s3.Object('2017-10-25-17.56.54-hook', key).put(ACL='public-read', Body=data)
-            app.logger.info(response)
-            # redis.delete(key)
+    # Dealing with concurrency
+    #while redis.get('wait') == 'true':
+    #    app.logger.info('Waiting for 2 seconds')
+    #    time.sleep(2)
+
+    # Lock redis
+    if redis.get('wait') == 'false':
+        app.logger.info('Setting wait to true')
+        redis.set('wait', 'true')
+
+        # Download file and upload to s3 bucket
+        for key in redis.scan_iter(): 
+            if key not in ['cursor', 'wait']:
+                app.logger.info('Attempting to upload file: %s to s3 bucket', key)
+                md, res = dbx.files_download(redis.get(key))
+                data = res.content
+                response = s3.Object('2017-10-25-17.56.54-hook', key).put(ACL='public-read', Body=data)
+                app.logger.info(response)
+                redis.delete(key)
+        
+        # Free the lock
+        app.logger.info('Setting wait to false')
+        redis.set('wait', 'false')
     
     app.logger.info('Finished uploading files')
     res = Response(status=200, mimetype='application/json')
@@ -95,20 +109,16 @@ def process_files():
 
 @app.route("/")
 def main():
-    index_path = os.path.join(app.static_folder, 'index.html')
-    return send_file(index_path)
+    urls = []
+    bucket = s3.Bucket('2017-10-25-17.56.54-hook')
+    bucket_name = '2017-10-25-17.56.54-hook'
+    region = 'eu-west-1'
 
-# For Angular SPA routes
-@app.route('/<path:path>')
-def route_frontend(path):
-    # Serve static files
-    file_path = os.path.join(app.static_folder, path)
-    if os.path.isfile(file_path):
-        return send_file(file_path)
-    # Or angular routes
-    else:
-        index_path = os.path.join(app.static_folder, 'index.html')
-        return send_file(index_path)
+    for item in bucket.objects.all():
+        url = 'https://s3-' + region + '.amazonaws.com/' + bucket_name + '/' + item.key
+        urls.append(url)
+
+    return render_template('index.html', urls=urls)
 
 if __name__ == "__main__":
     # Only for debugging while developing
