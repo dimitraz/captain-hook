@@ -4,8 +4,13 @@
 import sys
 import boto3
 import datetime
+import config
 
-boto3.setup_default_session(profile_name='boto3')
+boto3.setup_default_session(
+    aws_access_key_id = config.AWS_ACCESS_KEY,
+    aws_secret_access_key = config.AWS_SECRET_KEY,
+    region_name = config.AWS_REGION_NAME
+)
 s3client = boto3.client('s3')
 s3 = boto3.resource('s3')
 
@@ -26,7 +31,7 @@ def create_bucket(bucket_name):
         sys.exit(1)
 
 def main():
-    create_bucket(sys.argv[1])
+    create_bucket('')
 
 if __name__ == '__main__':
     main()

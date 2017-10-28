@@ -6,8 +6,13 @@
 import boto3
 import sys
 import time
+import config
 
-boto3.setup_default_session(profile_name='boto3')
+boto3.setup_default_session(
+    aws_access_key_id = config.AWS_ACCESS_KEY,
+    aws_secret_access_key = config.AWS_SECRET_KEY,
+    region_name = config.AWS_REGION_NAME
+)
 client = boto3.client('ec2')
 ec2 = boto3.resource('ec2')
 
@@ -81,7 +86,7 @@ def create_instance(key, instance_name):
 
     # Use default instance name
     if not instance_name:
-        instance_name = 'captain-hookzz'
+        instance_name = 'captain-hook'
 
     try: 
         instance = ec2.create_instances(
@@ -109,10 +114,7 @@ def create_instance(key, instance_name):
         )
         
         # Wait for instance to start up before returning
-        instance = instance[0]
-        #waiter = client.get_waiter('instance_status_ok')
-        #waiter.wait(InstanceIds=[instance.id])
-        
+        instance = instance[0]        
         while instance.state['Name'] != 'running':
             print ('Instance is starting up...')
             time.sleep(10)

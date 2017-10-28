@@ -86,8 +86,8 @@ def process_files():
 
     # Lock redis
     if redis.get('wait') == 'false':
-        app.logger.info('Setting wait to true')
-        redis.set('wait', 'true')
+        #app.logger.info('Setting wait to true')
+        #redis.set('wait', 'true')
 
         # Download file and upload to s3 bucket
         for key in redis.scan_iter(): 
@@ -95,13 +95,13 @@ def process_files():
                 app.logger.info('Attempting to upload file: %s to s3 bucket', key)
                 md, res = dbx.files_download(redis.get(key))
                 data = res.content
-                response = s3.Object('2017-10-25-17.56.54-hook', key).put(ACL='public-read', Body=data)
+                response = s3.Object(config.S3_BUCKET_NAME, key).put(ACL='public-read', Body=data)
                 app.logger.info(response)
                 redis.delete(key)
         
         # Free the lock
-        app.logger.info('Setting wait to false')
-        redis.set('wait', 'false')
+        #app.logger.info('Setting wait to false')
+        #redis.set('wait', 'false')
     
     app.logger.info('Finished uploading files')
     res = Response(status=200, mimetype='application/json')
@@ -110,12 +110,11 @@ def process_files():
 @app.route("/")
 def main():
     urls = []
-    bucket = s3.Bucket('2017-10-25-17.56.54-hook')
-    bucket_name = '2017-10-25-17.56.54-hook'
+    bucket = s3.Bucket(config.S3_BUCKET_NAME)
     region = 'eu-west-1'
 
     for item in bucket.objects.all():
-        url = 'https://s3-' + region + '.amazonaws.com/' + bucket_name + '/' + item.key
+        url = 'https://s3-' + region + '.amazonaws.com/' + config.S3_BUCKET_NAME + '/' + item.key
         urls.append(url)
 
     return render_template('index.html', urls=urls)
