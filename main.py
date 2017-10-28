@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
-# To do: AWS profiles
-# To do: sys args
-# To do: use existing instance
-# To do: .pem extension
-# Individual boto resources?
+# To do: args parser
 
-import boto3
+import os
 import sys
 import time
 import config
+import boto3
 import subprocess 
+import webbrowser
 from create_instance import create_instance
 from create_bucket import create_bucket
 from start_docker import build_image, start_container
@@ -20,8 +18,8 @@ boto3.setup_default_session(
     aws_secret_access_key = config.AWS_SECRET_KEY,
     region_name = config.AWS_REGION_NAME
 )
-client = boto3.client('ec2')
 ec2 = boto3.resource('ec2')
+s3 = boto3.resource('s3')
 
 def copy_files(key, dns):
     # copy the flask app and the 'check docker' script
@@ -57,6 +55,8 @@ def main():
         print ('Please provide a valid key.')
         print ('Usage: --key <key_name> [--ec2 <instance_name>] [--s3 <bucket_name>]')
         sys.exit(1)
+    if key.endswith('.pem'):
+        key = os.path.splitext(key)[0]
 
     instance_name = ''
     if args:
@@ -71,13 +71,15 @@ def main():
             del args[0:2]
 
     # Create an EC2 instance
-    # instance = ec2.Instance('i-023e0b47256c346b9')
-    # if not instance:
-    instance = create_instance(key, instance_name)
+    instance = ec2.Instance(instance_name)
+    if not instance:
+        instance = create_instance(key, instance_name)
     dns = instance.public_dns_name
 
     # Create S3 bucket
-    bucket = create_bucket(bucket_name)
+    bucket = s3.Bucket(bucket_name)
+    if not bucket:
+        bucket = create_bucket(bucket_name)
     bucket_name = bucket.name
     cmd = 'echo \"\nS3_BUCKET_NAME = \''  + bucket_name + '\'\" >> config.py'
     subprocess.run(cmd, shell=True)
@@ -93,6 +95,10 @@ def main():
 
     # Make sure docker is running
     check_docker(key, dns)
+
+    # Open instance in default browser
+    url = 'http://' + instance.public_ip_address
+    webbrowser.open(url, new=2, autoraise=True)
 
 if __name__ == '__main__':
     main()
