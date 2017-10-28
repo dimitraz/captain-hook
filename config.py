@@ -1,0 +1,5 @@
+DBX_SECRET = b'xxxxxxxxxxxxxxx'
+DBX_ACCESS_TOKEN = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+AWS_ACCESS_KEY = 'xxxxxxxxxxxxxxxxxx'
+AWS_SECRET_KEY = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+AWS_REGION_NAME = 'eu-west-1'
