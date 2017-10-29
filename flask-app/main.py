@@ -23,9 +23,11 @@ s3 = boto3.resource(
 
 @app.before_first_request
 def setup_logging():
-    app.logger.addHandler(logging.StreamHandler())
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    stream = logging.StreamHandler()
+    stream.setFormatter(formatter)
+    app.logger.addHandler(stream)
     app.logger.setLevel(logging.DEBUG)
-    redis.set('wait', 'false')
 
 # Webhook verification request
 @app.route('/webhook', methods=['GET'])
@@ -79,12 +81,12 @@ def process_files():
 
     # Download file and upload to s3 bucket
     for key in redis.scan_iter(): 
-        if key not in ['cursor', 'wait'] and redis.get(key) != 'processed':
+        if key != 'cursor' and redis.get(key) != 'processed':
             app.logger.info('Attempting to upload file: %s to s3 bucket', key)
             md, res = dbx.files_download(redis.get(key))
             data = res.content
             response = s3.Object(config.S3_BUCKET_NAME, key).put(ACL='public-read', Body=data)
-            app.logger.info(response)
+            app.logger.info('File: %s successfully uploaded', key)
             redis.set(key, 'processed')
     
     app.logger.info('Finished uploading files')

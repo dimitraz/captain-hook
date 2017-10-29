@@ -3,10 +3,31 @@
 <html>
     <head>
         <title>Hello, world</title>
+        <link type='text/css' rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toast-css/1.1.0/grid.min.css">
+        <style type='text/css'>
+            body {
+                overflow-x: hidden;
+            }
+
+            img {
+                padding: 1em;
+                max-width: 100%;
+            }
+        </style>
     </head>
     <body>
+        <section class="grid">
         {% for url in urls %} 
-            <img src="{{ url }}" />
+            {% if loop.index is divisibleby(2) %}
+                <img class="grid__col--3-of-5" style="vertical-align: middle" src="{{ url }}" />
+            {% elif loop.index is divisibleby(3) %}
+                <img class="grid__col--1-of-3 grid__col--push-2-of-5" src="{{ url }}" />
+            {% elif loop.index is divisibleby(5) %}
+                <img class="grid__col--1-of-3" style="vertical-align: middle;  margin-top: 5em" src="{{ url }}" />
+            {% else %}
+                <img class="grid__col--4-of-5 grid__col--push-1-of-5" src="{{ url }}" />
+            {% endif %}
         {% endfor %}
+        </section>
     </body>
 </html>

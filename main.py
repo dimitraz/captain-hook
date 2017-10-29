@@ -20,6 +20,8 @@ boto3.setup_default_session(
 )
 ec2 = boto3.resource('ec2')
 s3 = boto3.resource('s3')
+ec2_client = boto3.client('ec2')
+s3_client = boto3.client('s3')
 
 def copy_files(key, dns):
     # copy the flask app and the 'check docker' script
@@ -50,13 +52,13 @@ def main():
     key = ''
     if args[0] == '--key':
         key = args[1]
+        if key.endswith('.pem'):
+            key = os.path.splitext(key)[0]
         del args[0:2]
     else:
         print ('Please provide a valid key.')
         print ('Usage: --key <key_name> [--ec2 <instance_name>] [--s3 <bucket_name>]')
         sys.exit(1)
-    if key.endswith('.pem'):
-        key = os.path.splitext(key)[0]
 
     instance_name = ''
     if args:
@@ -71,22 +73,34 @@ def main():
             del args[0:2]
 
     # Create an EC2 instance
-    instance = ec2.Instance(instance_name)
-    if not instance:
+    dns = ''
+    if instance_name:
+        try:
+            instance = ec2.Instance(instance_name)
+            dns = instance.public_dns_name
+            print ('Using instance with id %s' % instance_name)
+        except Exception as e:
+            print ('Cannot find instance with id \'%s\'. Creating new instance.' % (instance_name))
+            instance = create_instance(key, instance_name)
+    else:
         instance = create_instance(key, instance_name)
-    dns = instance.public_dns_name
+        dns = instance.public_dns_name
 
     # Create S3 bucket
-    bucket = s3.Bucket(bucket_name)
+    bucket = [bucket for bucket in s3.buckets.all() if bucket.name == bucket_name]
     if not bucket:
-        bucket = create_bucket(bucket_name)
-    bucket_name = bucket.name
+        try: 
+            bucket = create_bucket(bucket_name)
+        except Exception as e:
+            print ('Error while creating bucket:', str(e))
+            sys.exit(1)
+    bucket_name = bucket[0].name
     cmd = 'echo \"\nS3_BUCKET_NAME = \''  + bucket_name + '\'\" >> config.py'
     subprocess.run(cmd, shell=True)
 
     # Copy over flask app
     print ('Waiting for instance to initialise')
-    time.sleep(60)
+    time.sleep(70)
     copy_files(key, dns)
 
     # Start docker, build image, run container
