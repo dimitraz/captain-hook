@@ -124,7 +124,16 @@ def create_instance(key, instance_name):
         sys.exit(1)
 
 def main():
-    create_instance(sys.argv[1], sys.argv[2])
+    args = sys.argv[1:]
+
+    if not args:
+        print ('Please supply key as first argument')
+        sys.exit(1)
+
+    if len(args) > 1:
+        create_instance(args[0], args[1])
+    else:
+        create_instance(args[0], '')
 
 if __name__ == '__main__':
     main()

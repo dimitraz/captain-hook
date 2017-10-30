@@ -31,6 +31,12 @@ def start_container(key, dns, tag):
         print ('Error occurred while building image:', str(e))
 
 def main():
+    args = sys.argv[1:]
+    
+    if len(args) < 3:
+        print ('Please supply key, dns and image tag as first, second and third arguments')
+        sys.exit(1)
+
     key = sys.argv[1]
     dns = sys.argv[2]
     tag = sys.argv[3]

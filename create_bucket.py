@@ -30,7 +30,11 @@ def create_bucket(bucket_name):
         sys.exit(1)
 
 def main():
-    create_bucket('')
+    args = sys.argv[1:]
+    if not args:
+        create_bucket('')
+    else:
+        create_bucket(sys.argv[1])
 
 if __name__ == '__main__':
     main()

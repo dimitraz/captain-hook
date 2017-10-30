@@ -91,12 +91,19 @@ def main():
     if not bucket:
         try: 
             bucket = create_bucket(bucket_name)
+            bucket_name = bucket.name
         except Exception as e:
             print ('Error while creating bucket:', str(e))
             sys.exit(1)
-    bucket_name = bucket[0].name
-    cmd = 'echo \"\nS3_BUCKET_NAME = \''  + bucket_name + '\'\" >> config.py'
-    subprocess.run(cmd, shell=True)
+    else:
+        bucket_name = bucket[0].name
+    
+    try:
+        cmd = 'echo \"\nS3_BUCKET_NAME = \'' + bucket_name + '\'\" >> config.py'
+        subprocess.run(cmd, shell=True)
+    except Exception as e:
+        print ('Error while adding bucket name to config file. Please do this manually', str(e))
+        sys.exit(1)
 
     # Copy over flask app
     print ('Waiting for instance to initialise')
