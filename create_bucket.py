@@ -22,7 +22,6 @@ def create_bucket(bucket_name):
             Bucket=bucket_name,
             CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'}
         )
-        
         print ('Bucket created with name:', bucket.name)
         return bucket
     except Exception as e:

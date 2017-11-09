@@ -24,18 +24,21 @@ ec2_client = boto3.client('ec2')
 s3_client = boto3.client('s3')
 
 def copy_files(key, dns):
-    # copy the flask app and the 'check docker' script
+    # copy the flask app, the 'check docker' script
+    # and the main config file
     files = ['check_docker.py', 'helpers.py', 'flask-app/']
-    print ('Copying files:', ' '.join(files))
-
+    print ('Copying files:', ' '.join(files), 'config.py')
     try:
         scp(key, dns, ' '.join(files), '.')
+        # copy the config file to the flask app
         scp(key, dns, 'config.py', './flask-app')
     except Exception as e:
         print ('Error occurred while copying files:', str(e))
         sys.exit(1)
 
 def check_docker(key, dns):
+    # make sure docker is running by executing 
+    # the 'check docker' script
     try:
         ssh(key, dns, 'cd /home/ec2-user && python3 check_docker.py')
     except Exception as e:
@@ -98,6 +101,7 @@ def main():
     else:
         bucket_name = bucket[0].name
     
+    # Add the bucket name to the config file
     try:
         cmd = 'echo \"\nS3_BUCKET_NAME = \'' + bucket_name + '\'\" >> config.py'
         subprocess.run(cmd, shell=True)

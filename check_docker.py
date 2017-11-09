@@ -17,43 +17,42 @@ def check_docker():
         else:
             print ('Docker is running') 
     except Exception as e:
-        error = str(e)
-        print ('Error occurred:', error)
+        print ('Error occurred:', str(e))
 
 # Check if redis/application containers are running
 def check_container():
-    tag = 'captain-hook'
-    app = 'sudo docker ps -a | grep ' + tag
+    img = 'captain-hook'
+    app = 'sudo docker ps -a | grep ' + img
     redis = 'sudo docker ps -a | grep redis'
     try:
         app_status = subprocess.run(app, shell=True).returncode 
         redis_status = subprocess.run(redis, shell=True).returncode 
 
+        # Check Flask app
         if app_status != 0: 
-            
             print ('Application not running, starting now..')
-            print ('Starting container from image', tag)
+            print ('Starting container from image', img)
             port = '80'
-            cmd = 'sudo docker run --name captain-py --net py-net -d -p ' + port + ':80 ' + tag
+            cmd = 'sudo docker run --name captain-py --net py-net -d -p ' + port + ':80 ' + img
             try:
-                subprocess.run(cmd, shell=True).returncode 
+                subprocess.run(cmd, shell=True) 
             except Exception as e:
                 print ('Error while starting application container:', str(e))
         else:
             print ('Application is running') 
 
+        # Check Redis 
         if redis_status != 0: 
             print ('Redis not running, starting now..')
             cmd = 'sudo docker run --name redis-py --net py-net -d redis'
             try:
-                subprocess.run(cmd, shell=True).returncode 
+                subprocess.run(cmd, shell=True) 
             except Exception as e:
                 print ('Error while starting redis:', str(e))
         else:
             print ('Redis is running') 
     except Exception as e:
-        error = str(e)
-        print ('Error occurred:', error)
+        print ('Error occurred:', str(e))
 
 def main():
     check_docker()

@@ -39,7 +39,6 @@ def security_group():
         # First item in array, first item in tuple
         group_id = group[0][0]
         print ('Using existing security group with id %s' % (group_id))
-
         return group_id
 
     # Otherwise, create security group
@@ -49,7 +48,6 @@ def security_group():
                 GroupName=group_name,
                 Description=group_desc
             )
-            
             group_id = group.id
             print ('Security Group created with id %s' % (group_id))
 
