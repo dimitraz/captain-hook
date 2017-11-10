@@ -42,4 +42,4 @@ Examples:
 * Upload a few images to the newly created Dropbox App folder. 
 * Wait for the application to do its magic! Your images should be displayed at your instance's ip address.
 
-To view the logs, connect to your instance and run `docker logs <container-id>`
+To view the logs, connect to your instance and run `docker logs captain-py`

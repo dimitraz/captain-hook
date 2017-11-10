@@ -9,7 +9,6 @@ def build_image(key, dns, tag):
 
     print ('Building Docker image with tag:', tag)
     cmd = 'cd /home/ec2-user/flask-app && sudo docker build -t ' + tag + ' .'
-
     try:
         ssh(key, dns, cmd)
         ssh(key, dns, 'docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q)')

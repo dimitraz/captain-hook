@@ -22,8 +22,8 @@ def check_docker():
 # Check if redis/application containers are running
 def check_container():
     img = 'captain-hook'
-    app = 'sudo docker ps -a | grep ' + img
-    redis = 'sudo docker ps -a | grep redis'
+    app = 'sudo docker ps -a -f status=running | grep ' + img
+    redis = 'sudo docker ps -a -f status=running | grep redis'
     try:
         app_status = subprocess.run(app, shell=True).returncode 
         redis_status = subprocess.run(redis, shell=True).returncode 
@@ -31,22 +31,51 @@ def check_container():
         # Check Flask app
         if app_status != 0: 
             print ('Application not running, starting now..')
-            print ('Starting container from image', img)
-            port = '80'
-            cmd = 'sudo docker run --name captain-py --net py-net -d -p ' + port + ':80 ' + img
             try:
-                subprocess.run(cmd, shell=True) 
-            except Exception as e:
-                print ('Error while starting application container:', str(e))
+                cmd = 'sudo docker ps -a -f status=exited | grep ' + img
+                status = subprocess.run(cmd, shell=True).returncode 
+
+                if status != 0:
+                    print ('Starting container from image', img)
+                    port = '80'
+                    cmd = 'sudo docker run --name captain-py --net py-net -d -p ' + port + ':80 ' + img
+                    try:
+                        subprocess.run(cmd, shell=True) 
+                    except Exception as e:
+                        print ('Error while starting application container:', str(e))
+                else:
+                    print ('Restarting Flask app container')
+                    cmd = 'sudo docker start captain-py'
+                    try:
+                        subprocess.run(cmd, shell=True) 
+                    except Exception as e:
+                        print ('Error while starting application container:', str(e))
+            except Exception as e: 
+                 print ('Error while starting application container:', str(e))
         else:
             print ('Application is running') 
 
         # Check Redis 
         if redis_status != 0: 
             print ('Redis not running, starting now..')
-            cmd = 'sudo docker run --name redis-py --net py-net -d redis'
-            try:
-                subprocess.run(cmd, shell=True) 
+            try: 
+                cmd = 'sudo docker ps -a -f status=exited | grep redis'
+                status = subprocess.run(cmd, shell=True).returncode 
+
+                if status != 0:
+                    print ('Starting redis container')
+                    cmd = 'sudo docker run --name redis-py --net py-net -d redis'
+                    try:
+                        subprocess.run(cmd, shell=True) 
+                    except Exception as e:
+                        print ('Error while starting redis:', str(e))
+                else:
+                    print ('Restarting redis container')
+                    cmd = 'sudo docker start redis-py'
+                    try:
+                        subprocess.run(cmd, shell=True) 
+                    except Exception as e:
+                        print ('Error while starting application container:', str(e))
             except Exception as e:
                 print ('Error while starting redis:', str(e))
         else:
